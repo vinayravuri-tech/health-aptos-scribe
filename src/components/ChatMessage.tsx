@@ -8,9 +8,11 @@ type ChatMessageProps = {
   content: string;
   sender: 'user' | 'ai';
   timestamp?: Date;
+  messageType?: 'text' | 'image';
+  imageData?: string;
 };
 
-const ChatMessage = ({ content, sender, timestamp }: ChatMessageProps) => {
+const ChatMessage = ({ content, sender, timestamp, messageType, imageData }: ChatMessageProps) => {
   const isAi = sender === 'ai';
   
   return (
@@ -39,6 +41,16 @@ const ChatMessage = ({ content, sender, timestamp }: ChatMessageProps) => {
           "p-3 rounded-lg",
           isAi ? "bg-white border border-gray-200" : "bg-medical-primary text-white"
         )}>
+          {messageType === 'image' && imageData && (
+            <div className="mb-2">
+              <img 
+                src={imageData} 
+                alt="User uploaded" 
+                className="rounded-md max-w-full max-h-[200px]" 
+              />
+            </div>
+          )}
+          
           <p className="text-sm">{content}</p>
           {timestamp && (
             <p className={cn(

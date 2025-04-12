@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -6,9 +5,10 @@ import SummaryCard, { MedicalSummary } from '@/components/SummaryCard';
 import WalletConnect from '@/components/WalletConnect';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Shield, AlertTriangle, FilterX, Search, CheckCircle } from 'lucide-react';
+import { Shield, AlertTriangle, FilterX, Search, CheckCircle, Database } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
 // Mock data for medical summaries
 const mockSummaries: MedicalSummary[] = [
