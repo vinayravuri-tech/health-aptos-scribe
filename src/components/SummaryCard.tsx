@@ -7,6 +7,9 @@ import { Shield, CheckCircle, Download, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 
+// Predefined wallet credentials
+const WALLET_ADDRESS = '0xc44428675a04509cea912d79a922da889328c739da67274abc7974d68c21de96';
+
 export type MedicalSummary = {
   id: string;
   date: string;
@@ -43,6 +46,7 @@ const SummaryCard = ({ summary, onMintNFT }: SummaryCardProps) => {
         tokenId: `APT-MED-${summary.id}`,
         blockchain: 'Aptos',
         timestamp: new Date().toISOString(),
+        walletAddress: WALLET_ADDRESS,
       },
       content: {
         description: summary.description,
@@ -177,6 +181,8 @@ const SummaryCard = ({ summary, onMintNFT }: SummaryCardProps) => {
                 <span>Aptos</span>
                 <span className="text-gray-500">Status:</span>
                 <span className="text-green-600 font-medium">Verified</span>
+                <span className="text-gray-500">Wallet Address:</span>
+                <span className="text-xs break-all">{WALLET_ADDRESS.substring(0, 18)}...</span>
               </div>
             </div>
             
