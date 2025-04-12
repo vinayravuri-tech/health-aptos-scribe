@@ -82,6 +82,10 @@ const SummaryCard = ({ summary, onMintNFT }: SummaryCardProps) => {
     });
   };
 
+  const handleViewNFT = () => {
+    setShowNFTData(true);
+  };
+
   return (
     <>
       <Card className="shadow-md border-gray-200 hover:shadow-lg transition-shadow duration-300">
@@ -129,7 +133,7 @@ const SummaryCard = ({ summary, onMintNFT }: SummaryCardProps) => {
                 variant="outline" 
                 size="sm" 
                 className="gap-1"
-                onClick={() => setShowNFTData(true)}
+                onClick={handleViewNFT}
               >
                 <FileText className="h-4 w-4" />
                 View NFT
