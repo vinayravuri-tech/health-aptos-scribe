@@ -25,6 +25,46 @@ const initialMessages: Message[] = [
   },
 ];
 
+// Database of symptoms and their follow-up questions/responses
+const symptomDatabase = {
+  headache: {
+    followUp: "I notice you mentioned headache. How severe is it on a scale from 1-10, and how long have you been experiencing it?",
+    relatedSymptoms: ["nausea", "dizziness", "sensitivity to light", "vision changes"],
+  },
+  fever: {
+    followUp: "You mentioned fever. What's your temperature, and do you have any other symptoms like chills or body aches?",
+    relatedSymptoms: ["chills", "sweating", "fatigue", "body aches"],
+  },
+  cough: {
+    followUp: "I see you're coughing. Is it a dry cough or are you coughing up phlegm? And how long has this been going on?",
+    relatedSymptoms: ["shortness of breath", "chest pain", "wheezing", "sore throat"],
+  },
+  rash: {
+    followUp: "I notice you mentioned a rash. Can you describe the appearance, location, and if it's itchy or painful?",
+    relatedSymptoms: ["itching", "swelling", "blisters", "redness"],
+  },
+  fatigue: {
+    followUp: "You mentioned feeling fatigued. Is this a new symptom, and how is it affecting your daily activities?",
+    relatedSymptoms: ["weakness", "sleepiness", "difficulty concentrating", "low energy"],
+  },
+  nausea: {
+    followUp: "I see you mentioned nausea. Have you vomited, and are you able to keep food and liquids down?",
+    relatedSymptoms: ["vomiting", "stomach pain", "dizziness", "loss of appetite"],
+  },
+  pain: {
+    followUp: "You mentioned pain. Could you specify the location, intensity, and whether it's constant or intermittent?",
+    relatedSymptoms: ["swelling", "tenderness", "limited mobility", "redness"],
+  },
+  dizzy: {
+    followUp: "I notice you mentioned feeling dizzy. Does it feel like the room is spinning, or more like lightheadedness?",
+    relatedSymptoms: ["vertigo", "balance problems", "fainting", "headache"],
+  },
+  breathing: {
+    followUp: "You mentioned breathing issues. Is it difficult to catch your breath or painful to breathe? Did this come on suddenly?",
+    relatedSymptoms: ["wheezing", "chest tightness", "cough", "anxiety"],
+  },
+};
+
 const ChatInterface = () => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -32,25 +72,93 @@ const ChatInterface = () => {
   const [showImagePreview, setShowImagePreview] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [conversationContext, setConversationContext] = useState<string[]>([]);
 
-  // Mock AI response function - in a real app this would call an AI service
+  // Enhanced AI response function with symptom detection
   const generateAIResponse = async (userMessage: string, imageData?: string) => {
     setIsLoading(true);
     
     // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     let response = "I understand you're experiencing some symptoms. Can you tell me more about how you're feeling?";
+    let detectedSymptoms: string[] = [];
     
-    // Simple keyword detection for demo purposes
-    if (userMessage.toLowerCase().includes('headache')) {
-      response = "I notice you mentioned headache. How severe is it on a scale from 1-10, and how long have you been experiencing it?";
-    } else if (userMessage.toLowerCase().includes('fever')) {
-      response = "You mentioned fever. What's your temperature, and do you have any other symptoms like chills or body aches?";
-    } else if (userMessage.toLowerCase().includes('cough')) {
-      response = "I see you're coughing. Is it a dry cough or are you coughing up phlegm? And how long has this been going on?";
+    // Normalize the user message for better matching
+    const normalizedMessage = userMessage.toLowerCase();
+    
+    // Check for symptoms in the user message
+    Object.keys(symptomDatabase).forEach(symptom => {
+      if (normalizedMessage.includes(symptom)) {
+        detectedSymptoms.push(symptom);
+      }
+    });
+
+    // Check for related terms that aren't exact matches
+    const commonHealthTerms = {
+      "throat": "sore throat",
+      "cant sleep": "insomnia",
+      "cant breathe": "breathing",
+      "hard to breathe": "breathing",
+      "throw up": "nausea",
+      "throwing up": "nausea",
+      "vomit": "nausea",
+      "stomach": "abdominal pain",
+      "belly": "abdominal pain",
+      "head hurts": "headache",
+      "back hurts": "back pain",
+      "ache": "pain",
+      "tired": "fatigue",
+      "exhausted": "fatigue",
+      "no energy": "fatigue",
+      "chest": "chest pain",
+      "heart": "chest pain",
+      "nose": "nasal congestion",
+      "runny nose": "nasal congestion",
+      "stuffy": "nasal congestion",
+      "itchy": "itching",
+      "scratch": "itching",
+      "spots": "rash",
+      "bumps": "rash",
+    };
+
+    Object.entries(commonHealthTerms).forEach(([term, symptom]) => {
+      if (normalizedMessage.includes(term) && !detectedSymptoms.includes(symptom)) {
+        detectedSymptoms.push(symptom);
+      }
+    });
+    
+    // If symptoms were detected, provide a specific response
+    if (detectedSymptoms.length > 0) {
+      // Update conversation context with detected symptoms
+      setConversationContext(prev => [...prev, ...detectedSymptoms]);
+      
+      // Get the first detected symptom for a targeted response
+      const primarySymptom = detectedSymptoms[0];
+      const matchedSymptom = Object.keys(symptomDatabase).find(s => 
+        primarySymptom.includes(s) || s.includes(primarySymptom)
+      );
+      
+      if (matchedSymptom && symptomDatabase[matchedSymptom as keyof typeof symptomDatabase]) {
+        response = symptomDatabase[matchedSymptom as keyof typeof symptomDatabase].followUp;
+        
+        // If we've detected multiple symptoms, acknowledge them
+        if (detectedSymptoms.length > 1) {
+          response += `\n\nI also notice you mentioned ${detectedSymptoms.slice(1).join(", ")}. Let's discuss each of these symptoms.`;
+        }
+      }
     } else if (imageData) {
-      response = "I've analyzed the image you sent. It appears to show some skin irritation. Is this rash itchy or painful? How long have you had it?";
+      // Image analysis response
+      response = "I've analyzed the image you sent. It appears to show some skin condition. Could you describe any symptoms related to this, such as itching, pain, or how long you've had it?";
+    } else if (normalizedMessage.includes("hello") || normalizedMessage.includes("hi")) {
+      response = "Hello! I'm here to help with your health concerns. Could you describe your symptoms in detail?";
+    } else if (normalizedMessage.includes("thank")) {
+      response = "You're welcome! Is there anything else about your symptoms you'd like to discuss?";
+    } else {
+      // Use conversation context to provide a more contextual response
+      if (conversationContext.length > 0) {
+        response = `Based on our conversation about ${conversationContext.join(", ")}, could you provide more details about your symptoms? This will help me give you a more accurate assessment.`;
+      }
     }
     
     setIsLoading(false);

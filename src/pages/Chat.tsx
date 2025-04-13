@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import ChatInterface from '@/components/ChatInterface';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Info } from 'lucide-react';
+import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 
@@ -41,12 +41,21 @@ const Chat = () => {
             </p>
           </div>
           
-          <Alert className="mb-6">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              This is not a replacement for professional medical advice. Always consult with a healthcare provider for proper diagnosis and treatment.
-            </AlertDescription>
-          </Alert>
+          <div className="space-y-4 mb-6">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700">
+                Our enhanced AI can now understand complex symptom combinations from text, voice, and images.
+              </AlertDescription>
+            </Alert>
+            
+            <Alert className="bg-amber-50 border-amber-200">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-700">
+                This is not a replacement for professional medical advice. Always consult with a healthcare provider for proper diagnosis and treatment.
+              </AlertDescription>
+            </Alert>
+          </div>
           
           <ChatInterface />
           
