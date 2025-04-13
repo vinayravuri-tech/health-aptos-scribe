@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -129,7 +128,7 @@ const symptomDatabase = {
   },
 };
 
-const ChatInterface = () => {
+const ChatInterface = forwardRef(function ChatInterface(props, ref) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -140,27 +139,26 @@ const ChatInterface = () => {
   const [detectedSymptoms, setDetectedSymptoms] = useState<string[]>([]);
   const [conversationStage, setConversationStage] = useState<'initial' | 'assessing' | 'recommending'>('initial');
 
-  // Enhanced AI response function with symptom detection and treatment recommendations
+  useImperativeHandle(ref, () => ({
+    getMessages: () => messages
+  }));
+
   const generateAIResponse = async (userMessage: string, imageData?: string) => {
     setIsLoading(true);
     
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     let response = "I understand you're experiencing some symptoms. Can you tell me more about how you're feeling?";
     let newDetectedSymptoms: string[] = [...detectedSymptoms];
     
-    // Normalize the user message for better matching
     const normalizedMessage = userMessage.toLowerCase();
     
-    // Check for symptoms in the user message
     Object.keys(symptomDatabase).forEach(symptom => {
       if (normalizedMessage.includes(symptom) && !newDetectedSymptoms.includes(symptom)) {
         newDetectedSymptoms.push(symptom);
       }
     });
 
-    // Check for related terms that aren't exact matches
     const commonHealthTerms = {
       "throat": "sore throat",
       "cant sleep": "insomnia",
@@ -194,10 +192,8 @@ const ChatInterface = () => {
       }
     });
 
-    // Update detected symptoms state
     setDetectedSymptoms(newDetectedSymptoms);
     
-    // Check if the user is asking for treatment suggestions
     const askingForTreatment = normalizedMessage.includes('treatment') || 
                              normalizedMessage.includes('remedy') || 
                              normalizedMessage.includes('medicine') || 
@@ -206,15 +202,12 @@ const ChatInterface = () => {
                              normalizedMessage.includes('what should i do') ||
                              normalizedMessage.includes('how to treat');
     
-    // Determine if we should provide treatment recommendations
     const shouldRecommendTreatment = askingForTreatment || 
                                    (newDetectedSymptoms.length > 0 && conversationStage === 'assessing' && messages.length > 4);
     
     if (shouldRecommendTreatment && newDetectedSymptoms.length > 0) {
-      // Move to recommending stage
       setConversationStage('recommending');
       
-      // Provide treatment recommendations based on detected symptoms
       response = "Based on your symptoms, here are some recommendations:\n\n";
       
       for (const symptom of newDetectedSymptoms) {
@@ -234,13 +227,10 @@ const ChatInterface = () => {
       
       response += "Remember, this is not a replacement for professional medical advice. If your symptoms are severe or persistent, please consult with a healthcare provider.";
     } else if (newDetectedSymptoms.length > 0) {
-      // Update conversation context with detected symptoms
       setConversationContext(prev => [...prev, ...newDetectedSymptoms]);
       
-      // Set conversation stage to assessing
       setConversationStage('assessing');
       
-      // Get the first detected symptom for a targeted response
       const primarySymptom = newDetectedSymptoms[0];
       const matchedSymptom = Object.keys(symptomDatabase).find(s => 
         primarySymptom.includes(s) || s.includes(primarySymptom)
@@ -249,29 +239,24 @@ const ChatInterface = () => {
       if (matchedSymptom && symptomDatabase[matchedSymptom as keyof typeof symptomDatabase]) {
         response = symptomDatabase[matchedSymptom as keyof typeof symptomDatabase].followUp;
         
-        // If we've detected multiple symptoms, acknowledge them
         if (newDetectedSymptoms.length > 1) {
           response += `\n\nI also notice you mentioned ${newDetectedSymptoms.slice(1).join(", ")}. Let's discuss each of these symptoms.`;
         }
         
-        // Add a prompt for treatment if we have enough symptoms
         if (newDetectedSymptoms.length >= 2) {
           response += "\n\nWould you like me to suggest some treatment options based on your symptoms?";
         }
       }
     } else if (imageData) {
-      // Image analysis response
       response = "I've analyzed the image you sent. It appears to show some skin condition. Could you describe any symptoms related to this, such as itching, pain, or how long you've had it?";
     } else if (normalizedMessage.includes("hello") || normalizedMessage.includes("hi")) {
       response = "Hello! I'm here to help with your health concerns. Could you describe your symptoms in detail?";
     } else if (normalizedMessage.includes("thank")) {
       response = "You're welcome! Is there anything else about your symptoms you'd like to discuss?";
     } else {
-      // Use conversation context to provide a more contextual response
       if (conversationContext.length > 0) {
         response = `Based on our conversation about ${conversationContext.join(", ")}, could you provide more details about your symptoms? This will help me give you a more accurate assessment.`;
         
-        // If we have enough context, prompt for treatment options
         if (conversationStage === 'assessing' && conversationContext.length >= 2) {
           response += "\n\nWould you like me to suggest some treatment options based on what you've shared so far?";
         }
@@ -285,7 +270,6 @@ const ChatInterface = () => {
   const handleSendMessage = async () => {
     if (!input.trim() && !showImagePreview) return;
     
-    // Add user message
     const userMessage: Message = {
       content: input,
       sender: 'user',
@@ -298,7 +282,6 @@ const ChatInterface = () => {
     setInput('');
     setShowImagePreview(null);
     
-    // Generate and add AI response
     const aiResponse = await generateAIResponse(input, userMessage.imageData);
     
     const aiMessage: Message = {
@@ -337,7 +320,6 @@ const ChatInterface = () => {
     setShowImagePreview(null);
   };
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -415,6 +397,6 @@ const ChatInterface = () => {
       </div>
     </Card>
   );
-};
+});
 
 export default ChatInterface;
