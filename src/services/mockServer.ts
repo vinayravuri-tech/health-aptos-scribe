@@ -5,6 +5,7 @@ import { MedicalSummary } from '@/components/SummaryCard';
 class MockLocalServer {
   private static instance: MockLocalServer;
   private storage: Map<string, MedicalSummary>;
+  private connectedWallet: string | null = null;
   
   private constructor() {
     this.storage = new Map();
@@ -24,6 +25,17 @@ class MockLocalServer {
       MockLocalServer.instance = new MockLocalServer();
     }
     return MockLocalServer.instance;
+  }
+  
+  // Connect a wallet for minting
+  public connectWallet(walletAddress: string): void {
+    this.connectedWallet = walletAddress;
+    console.log(`Wallet connected: ${walletAddress}`);
+  }
+  
+  // Get connected wallet address
+  public getConnectedWallet(): string | null {
+    return this.connectedWallet;
   }
   
   // Save summary to "server" (localStorage)
@@ -64,14 +76,23 @@ class MockLocalServer {
     return new Promise((resolve, reject) => {
       // Simulate network delay
       setTimeout(() => {
+        if (!this.connectedWallet) {
+          reject(new Error('No wallet connected, please connect your wallet first'));
+          return;
+        }
+        
         const summary = this.storage.get(id);
         if (!summary) {
           reject(new Error('Summary not found'));
           return;
         }
         
-        // Update the summary status to minted
-        const updatedSummary = { ...summary, status: 'minted' as const };
+        // Update the summary status to minted and add wallet info
+        const updatedSummary = { 
+          ...summary, 
+          status: 'minted' as const,
+          ownerWallet: this.connectedWallet
+        };
         this.storage.set(id, updatedSummary);
         this.persistToLocalStorage();
         resolve(updatedSummary);

@@ -1,24 +1,26 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import ChatInterface from '@/components/ChatInterface';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Info, AlertTriangle, Stethoscope, Volume2, VolumeX } from 'lucide-react';
+import { CheckCircle, Info, AlertTriangle, Stethoscope, Volume2, VolumeX, Wallet } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { generateMedicalSummary } from '@/utils/summaryUtils';
-import { speakText, stopSpeaking } from '@/utils/speechUtils';
+import { speakText, stopSpeaking, isSpeaking } from '@/utils/speechUtils';
 import mockServer from '@/services/mockServer';
 import { MedicalSummary } from '@/components/SummaryCard';
+import WalletConnect from '@/components/WalletConnect';
 
 const Chat = () => {
   const { toast } = useToast();
   const [showSummary, setShowSummary] = useState(false);
   const [generatedSummary, setGeneratedSummary] = useState<MedicalSummary | null>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSpeakingState, setIsSpeakingState] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
   const chatInterfaceRef = useRef<{ getMessages?: () => any[] } | null>(null);
   
   const handleGetSummary = async () => {
@@ -66,6 +68,15 @@ const Chat = () => {
   const handleMintNFT = async () => {
     if (!generatedSummary) return;
     
+    if (!mockServer.getConnectedWallet()) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet before minting an NFT.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     toast({
       title: "Minting in Progress",
       description: "Creating your secure medical NFT...",
@@ -77,28 +88,59 @@ const Chat = () => {
       
       toast({
         title: "NFT Created Successfully",
-        description: "Your medical data has been securely stored as an NFT.",
+        description: "Your medical data has been securely stored as an NFT in your wallet.",
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       toast({
         title: "Minting Failed",
-        description: "There was an error creating your NFT. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
   
-  const toggleSpeech = () => {
-    if (isSpeaking) {
+  const toggleSpeech = async () => {
+    if (isSpeakingState) {
       stopSpeaking();
-      setIsSpeaking(false);
+      setIsSpeakingState(false);
     } else if (generatedSummary) {
+      setIsSpeakingState(true);
       const textToSpeak = `Medical Summary: You reported symptoms of ${generatedSummary.symptoms.join(', ')}. 
         ${generatedSummary.recommendation}`;
-      speakText(textToSpeak);
-      setIsSpeaking(true);
+      
+      try {
+        await speakText(textToSpeak);
+        setIsSpeakingState(false);
+      } catch (error) {
+        console.error("Speech error:", error);
+        setIsSpeakingState(false);
+        toast({
+          title: "Speech Error",
+          description: "There was an error with text-to-speech. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   };
+  
+  const handleWalletConnect = (address: string) => {
+    mockServer.connectWallet(address);
+    setWalletConnected(true);
+    
+    toast({
+      title: "Wallet Connected",
+      description: `Connected to wallet: ${address.substring(0, 8)}...${address.substring(address.length - 6)}`,
+    });
+  };
+  
+  // Check if wallet is already connected on component mount
+  useEffect(() => {
+    const connectedWallet = mockServer.getConnectedWallet();
+    if (connectedWallet) {
+      setWalletConnected(true);
+    }
+  }, []);
   
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -106,19 +148,24 @@ const Chat = () => {
       
       <main className="flex-grow container py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-medical-dark mb-2">AI Symptom Checker</h1>
-            <p className="text-gray-600">
-              Describe your symptoms in a natural conversation with our AI health assistant. 
-              Get instant insights, treatment suggestions, and save a secure medical summary to the blockchain.
-            </p>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-medical-dark mb-2">AI Symptom Checker</h1>
+              <p className="text-gray-600">
+                Describe your symptoms in a natural conversation with our AI health assistant powered by Groq. 
+                Get instant insights and treatment suggestions.
+              </p>
+            </div>
+            <div>
+              <WalletConnect onConnect={handleWalletConnect} />
+            </div>
           </div>
           
           <div className="space-y-4 mb-6">
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-700">
-                Our enhanced AI can now understand complex symptom combinations and suggest treatment options for common conditions.
+                Our enhanced AI uses Groq's advanced LLMs to understand complex symptom combinations and suggest treatment options.
               </AlertDescription>
             </Alert>
             
@@ -139,7 +186,15 @@ const Chat = () => {
           
           <ChatInterface ref={chatInterfaceRef} />
           
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-between items-center">
+            <div className="text-sm text-gray-500 flex items-center gap-2">
+              {walletConnected && (
+                <span className="flex items-center gap-1">
+                  <Wallet className="h-3 w-3 text-green-500" />
+                  Wallet Connected
+                </span>
+              )}
+            </div>
             <Button 
               onClick={handleGetSummary}
               className="gap-2 bg-medical-accent hover:bg-medical-accent/90"
@@ -193,8 +248,8 @@ const Chat = () => {
                   size="sm" 
                   className="gap-1"
                 >
-                  {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  {isSpeaking ? 'Stop Voice' : 'Read Aloud'}
+                  {isSpeakingState ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  {isSpeakingState ? 'Stop Voice' : 'Read Aloud'}
                 </Button>
                 
                 {generatedSummary.status === 'pending' ? (
@@ -202,8 +257,9 @@ const Chat = () => {
                     onClick={handleMintNFT} 
                     className="gap-1 bg-medical-primary hover:bg-medical-primary/90"
                     size="sm"
+                    disabled={!walletConnected}
                   >
-                    Store as NFT
+                    {!walletConnected ? 'Connect Wallet to Mint' : 'Store as NFT'}
                   </Button>
                 ) : (
                   <Link to="/dashboard">
@@ -213,6 +269,12 @@ const Chat = () => {
                   </Link>
                 )}
               </div>
+              
+              {generatedSummary.status === 'minted' && generatedSummary.ownerWallet && (
+                <div className="mt-2 text-xs text-gray-500">
+                  <p>Stored in wallet: {generatedSummary.ownerWallet.substring(0, 8)}...{generatedSummary.ownerWallet.substring(generatedSummary.ownerWallet.length - 6)}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
