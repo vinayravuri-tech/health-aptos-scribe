@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ export type MedicalSummary = {
   recommendation: string;
   severity: 'low' | 'medium' | 'high';
   status: 'minted' | 'pending';
+  ownerWallet?: string; // Added this property to fix the TypeScript error
 };
 
 type SummaryCardProps = {
