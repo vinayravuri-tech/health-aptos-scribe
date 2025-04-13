@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Wallet, ExternalLink } from 'lucide-react';
@@ -18,7 +18,16 @@ const PREDEFINED_WALLET = {
 const WalletConnect = ({ onConnect }: WalletConnectProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if wallet is already connected in localStorage
+    const connectedWallet = localStorage.getItem('connected_wallet');
+    if (connectedWallet) {
+      setIsConnected(true);
+    }
+  }, []);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -29,6 +38,7 @@ const WalletConnect = ({ onConnect }: WalletConnectProps) => {
     // Use the predefined wallet address
     setIsConnecting(false);
     setIsOpen(false);
+    setIsConnected(true);
     
     // Call the onConnect callback with the predefined address
     onConnect(PREDEFINED_WALLET.address);
@@ -42,6 +52,7 @@ const WalletConnect = ({ onConnect }: WalletConnectProps) => {
   const handleQuickConnect = () => {
     // Directly connect using the predefined wallet without opening the dialog
     onConnect(PREDEFINED_WALLET.address);
+    setIsConnected(true);
     
     toast({
       title: "Wallet Connected",
@@ -55,9 +66,11 @@ const WalletConnect = ({ onConnect }: WalletConnectProps) => {
         variant="outline" 
         className="gap-2 border-medical-primary text-medical-primary hover:bg-medical-primary/10"
         onClick={handleQuickConnect}
+        data-wallet-connect
+        disabled={isConnected}
       >
         <Wallet className="h-4 w-4" />
-        Connect Your Wallet
+        {isConnected ? 'Wallet Connected' : 'Connect Your Wallet'}
       </Button>
       
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -74,7 +87,7 @@ const WalletConnect = ({ onConnect }: WalletConnectProps) => {
               variant="outline" 
               className="w-full justify-start gap-3 h-16"
               onClick={handleConnect}
-              disabled={isConnecting}
+              disabled={isConnecting || isConnected}
             >
               <div className="h-8 w-8 bg-medical-primary/10 rounded-full flex items-center justify-center">
                 <Wallet className="h-4 w-4 text-medical-primary" />

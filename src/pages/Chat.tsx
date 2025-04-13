@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
@@ -24,7 +23,6 @@ const Chat = () => {
   const chatInterfaceRef = useRef<{ getMessages?: () => any[] } | null>(null);
   
   const handleGetSummary = async () => {
-    // Get chat messages from the ChatInterface component
     const messages = chatInterfaceRef.current?.getMessages?.() || [];
     
     if (messages.length <= 1) {
@@ -36,11 +34,23 @@ const Chat = () => {
       return;
     }
     
-    // Generate a medical summary
     const summary = generateMedicalSummary(messages);
     
-    // Save to mock server
+    if (!mockServer.getConnectedWallet()) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to store your medical summaries as NFTs.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
+      toast({
+        title: "Processing Summary",
+        description: "Generating your medical summary, please wait...",
+      });
+      
       const savedSummary = await mockServer.saveSummary(summary);
       setGeneratedSummary(savedSummary);
       setShowSummary(true);
@@ -56,6 +66,9 @@ const Chat = () => {
           </Link>
         ),
       });
+      
+      await handleMintNFT(savedSummary);
+      
     } catch (error) {
       toast({
         title: "Error Generating Summary",
@@ -65,8 +78,8 @@ const Chat = () => {
     }
   };
   
-  const handleMintNFT = async () => {
-    if (!generatedSummary) return;
+  const handleMintNFT = async (summaryToMint = generatedSummary) => {
+    if (!summaryToMint) return;
     
     if (!mockServer.getConnectedWallet()) {
       toast({
@@ -83,7 +96,7 @@ const Chat = () => {
     });
     
     try {
-      const mintedSummary = await mockServer.mintSummaryAsNFT(generatedSummary.id);
+      const mintedSummary = await mockServer.mintSummaryAsNFT(summaryToMint.id);
       setGeneratedSummary(mintedSummary);
       
       toast({
@@ -134,11 +147,19 @@ const Chat = () => {
     });
   };
   
-  // Check if wallet is already connected on component mount
   useEffect(() => {
     const connectedWallet = mockServer.getConnectedWallet();
     if (connectedWallet) {
       setWalletConnected(true);
+    }
+    
+    if (!connectedWallet) {
+      const walletComponent = document.querySelector('[data-wallet-connect]');
+      if (walletComponent) {
+        (walletComponent as HTMLElement).click();
+      } else {
+        handleWalletConnect(mockServer.getDefaultWalletAddress());
+      }
     }
   }, []);
   
@@ -254,7 +275,7 @@ const Chat = () => {
                 
                 {generatedSummary.status === 'pending' ? (
                   <Button 
-                    onClick={handleMintNFT} 
+                    onClick={() => handleMintNFT()} 
                     className="gap-1 bg-medical-primary hover:bg-medical-primary/90"
                     size="sm"
                     disabled={!walletConnected}

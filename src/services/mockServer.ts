@@ -6,6 +6,7 @@ class MockLocalServer {
   private static instance: MockLocalServer;
   private storage: Map<string, MedicalSummary>;
   private connectedWallet: string | null = null;
+  private readonly defaultWalletAddress = '0xc44428675a04509cea912d79a922da889328c739da67274abc7974d68c21de96';
   
   private constructor() {
     this.storage = new Map();
@@ -27,14 +28,28 @@ class MockLocalServer {
     return MockLocalServer.instance;
   }
   
+  // Get default wallet address
+  public getDefaultWalletAddress(): string {
+    return this.defaultWalletAddress;
+  }
+  
   // Connect a wallet for minting
   public connectWallet(walletAddress: string): void {
     this.connectedWallet = walletAddress;
     console.log(`Wallet connected: ${walletAddress}`);
+    // Save to localStorage
+    localStorage.setItem('connected_wallet', walletAddress);
   }
   
   // Get connected wallet address
   public getConnectedWallet(): string | null {
+    // If wallet is not connected, try to retrieve from localStorage
+    if (!this.connectedWallet) {
+      const savedWallet = localStorage.getItem('connected_wallet');
+      if (savedWallet) {
+        this.connectedWallet = savedWallet;
+      }
+    }
     return this.connectedWallet;
   }
   
@@ -43,6 +58,11 @@ class MockLocalServer {
     return new Promise((resolve) => {
       // Simulate network delay
       setTimeout(() => {
+        // If wallet is connected, associate the summary with the wallet
+        if (this.connectedWallet) {
+          summary.ownerWallet = this.connectedWallet;
+        }
+        
         this.storage.set(summary.id, summary);
         this.persistToLocalStorage();
         resolve(summary);
