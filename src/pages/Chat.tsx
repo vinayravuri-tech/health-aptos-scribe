@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import ChatInterface from '@/components/ChatInterface';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Info, AlertTriangle, Stethoscope } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Link } from 'react-router-dom';
 
@@ -37,7 +37,7 @@ const Chat = () => {
             <h1 className="text-3xl font-bold text-medical-dark mb-2">AI Symptom Checker</h1>
             <p className="text-gray-600">
               Describe your symptoms in a natural conversation with our AI health assistant. 
-              Get instant insights and save a secure medical summary to the blockchain.
+              Get instant insights, treatment suggestions, and save a secure medical summary to the blockchain.
             </p>
           </div>
           
@@ -45,7 +45,14 @@ const Chat = () => {
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-700">
-                Our enhanced AI can now understand complex symptom combinations from text, voice, and images.
+                Our enhanced AI can now understand complex symptom combinations and suggest treatment options for common conditions.
+              </AlertDescription>
+            </Alert>
+            
+            <Alert className="bg-green-50 border-green-200">
+              <Stethoscope className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-700">
+                Simply describe your symptoms via text, voice, or images and ask "What should I do?" to receive treatment suggestions.
               </AlertDescription>
             </Alert>
             

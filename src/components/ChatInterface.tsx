@@ -30,38 +30,102 @@ const symptomDatabase = {
   headache: {
     followUp: "I notice you mentioned headache. How severe is it on a scale from 1-10, and how long have you been experiencing it?",
     relatedSymptoms: ["nausea", "dizziness", "sensitivity to light", "vision changes"],
+    treatments: [
+      "For mild to moderate headaches, over-the-counter pain relievers like acetaminophen or ibuprofen may help.",
+      "Stay hydrated and rest in a quiet, dark room if you have sensitivity to light or sound.",
+      "Apply a cold or warm compress to your head or neck.",
+      "If headaches are severe, persistent, or accompanied by other symptoms, please consult a healthcare provider."
+    ]
   },
   fever: {
     followUp: "You mentioned fever. What's your temperature, and do you have any other symptoms like chills or body aches?",
     relatedSymptoms: ["chills", "sweating", "fatigue", "body aches"],
+    treatments: [
+      "Rest and drink plenty of fluids to prevent dehydration.",
+      "Take over-the-counter fever reducers like acetaminophen or ibuprofen as directed.",
+      "Use lightweight clothing and bedding.",
+      "Take lukewarm baths to help reduce fever.",
+      "If fever is high (over 103°F/39.4°C), persists for more than 3 days, or is accompanied by severe symptoms, seek medical attention."
+    ]
   },
   cough: {
     followUp: "I see you're coughing. Is it a dry cough or are you coughing up phlegm? And how long has this been going on?",
     relatedSymptoms: ["shortness of breath", "chest pain", "wheezing", "sore throat"],
+    treatments: [
+      "Stay hydrated and drink warm liquids like tea with honey to soothe the throat.",
+      "Use a humidifier or take steamy showers to moisturize the air and loosen congestion.",
+      "Over-the-counter cough suppressants may help with dry coughs.",
+      "For productive coughs, expectorants can help clear mucus.",
+      "Avoid irritants like smoke or strong perfumes.",
+      "If cough persists for more than 2 weeks or is accompanied by difficulty breathing, seek medical advice."
+    ]
   },
   rash: {
     followUp: "I notice you mentioned a rash. Can you describe the appearance, location, and if it's itchy or painful?",
     relatedSymptoms: ["itching", "swelling", "blisters", "redness"],
+    treatments: [
+      "Avoid scratching and keep the affected area clean and dry.",
+      "Apply cool compresses to reduce itching and inflammation.",
+      "Over-the-counter hydrocortisone cream may help with itching and inflammation.",
+      "For allergic reactions, antihistamines might provide relief.",
+      "If the rash is widespread, painful, or accompanied by fever, consult a healthcare provider."
+    ]
   },
   fatigue: {
     followUp: "You mentioned feeling fatigued. Is this a new symptom, and how is it affecting your daily activities?",
     relatedSymptoms: ["weakness", "sleepiness", "difficulty concentrating", "low energy"],
+    treatments: [
+      "Ensure you're getting adequate sleep (7-9 hours for adults).",
+      "Maintain a balanced diet and stay hydrated.",
+      "Engage in regular, moderate physical activity.",
+      "Manage stress through techniques like meditation, deep breathing, or yoga.",
+      "Consider reviewing your medications with your doctor, as some can cause fatigue.",
+      "If fatigue is persistent or severe, consult a healthcare provider to rule out underlying conditions."
+    ]
   },
   nausea: {
     followUp: "I see you mentioned nausea. Have you vomited, and are you able to keep food and liquids down?",
     relatedSymptoms: ["vomiting", "stomach pain", "dizziness", "loss of appetite"],
+    treatments: [
+      "Stay hydrated with small sips of clear fluids like water, broth, or sports drinks.",
+      "Eat bland foods like crackers, toast, or rice when you can tolerate food.",
+      "Avoid spicy, fatty, or heavily seasoned foods.",
+      "Over-the-counter medications like bismuth subsalicylate or antiemetics may help relieve symptoms.",
+      "If nausea persists for more than 2 days, is accompanied by severe pain, or if you can't keep any liquids down, seek medical attention."
+    ]
   },
   pain: {
     followUp: "You mentioned pain. Could you specify the location, intensity, and whether it's constant or intermittent?",
     relatedSymptoms: ["swelling", "tenderness", "limited mobility", "redness"],
+    treatments: [
+      "Rest the affected area and avoid activities that worsen the pain.",
+      "Apply ice to reduce swelling and inflammation, especially in the first 48 hours after an injury.",
+      "Over-the-counter pain relievers like acetaminophen or NSAIDs may help manage pain.",
+      "For muscle pain, gentle stretching and warm compresses can provide relief.",
+      "If pain is severe, worsening, or doesn't improve with home care, consult a healthcare provider."
+    ]
   },
   dizzy: {
     followUp: "I notice you mentioned feeling dizzy. Does it feel like the room is spinning, or more like lightheadedness?",
     relatedSymptoms: ["vertigo", "balance problems", "fainting", "headache"],
+    treatments: [
+      "Sit or lie down immediately when feeling dizzy to prevent falls.",
+      "Move slowly when changing positions, especially when getting up from lying down.",
+      "Stay hydrated and avoid caffeine, alcohol, and tobacco.",
+      "If dizziness is related to inner ear issues, certain head movements or positions may help.",
+      "For recurring or severe dizziness, consult a healthcare provider, as it could indicate an underlying condition."
+    ]
   },
   breathing: {
     followUp: "You mentioned breathing issues. Is it difficult to catch your breath or painful to breathe? Did this come on suddenly?",
     relatedSymptoms: ["wheezing", "chest tightness", "cough", "anxiety"],
+    treatments: [
+      "Use proper posture to allow your lungs to expand fully.",
+      "Practice deep breathing exercises to improve lung capacity.",
+      "Avoid triggers like smoke, strong perfumes, or known allergens.",
+      "For asthma or allergies, use prescribed inhalers or medications as directed.",
+      "If you experience sudden shortness of breath, blue lips or fingers, or severe chest pain, seek emergency medical attention."
+    ]
   },
 };
 
@@ -73,8 +137,10 @@ const ChatInterface = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [conversationContext, setConversationContext] = useState<string[]>([]);
+  const [detectedSymptoms, setDetectedSymptoms] = useState<string[]>([]);
+  const [conversationStage, setConversationStage] = useState<'initial' | 'assessing' | 'recommending'>('initial');
 
-  // Enhanced AI response function with symptom detection
+  // Enhanced AI response function with symptom detection and treatment recommendations
   const generateAIResponse = async (userMessage: string, imageData?: string) => {
     setIsLoading(true);
     
@@ -82,15 +148,15 @@ const ChatInterface = () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     let response = "I understand you're experiencing some symptoms. Can you tell me more about how you're feeling?";
-    let detectedSymptoms: string[] = [];
+    let newDetectedSymptoms: string[] = [...detectedSymptoms];
     
     // Normalize the user message for better matching
     const normalizedMessage = userMessage.toLowerCase();
     
     // Check for symptoms in the user message
     Object.keys(symptomDatabase).forEach(symptom => {
-      if (normalizedMessage.includes(symptom)) {
-        detectedSymptoms.push(symptom);
+      if (normalizedMessage.includes(symptom) && !newDetectedSymptoms.includes(symptom)) {
+        newDetectedSymptoms.push(symptom);
       }
     });
 
@@ -123,18 +189,59 @@ const ChatInterface = () => {
     };
 
     Object.entries(commonHealthTerms).forEach(([term, symptom]) => {
-      if (normalizedMessage.includes(term) && !detectedSymptoms.includes(symptom)) {
-        detectedSymptoms.push(symptom);
+      if (normalizedMessage.includes(term) && !newDetectedSymptoms.includes(symptom)) {
+        newDetectedSymptoms.push(symptom);
       }
     });
+
+    // Update detected symptoms state
+    setDetectedSymptoms(newDetectedSymptoms);
     
-    // If symptoms were detected, provide a specific response
-    if (detectedSymptoms.length > 0) {
+    // Check if the user is asking for treatment suggestions
+    const askingForTreatment = normalizedMessage.includes('treatment') || 
+                             normalizedMessage.includes('remedy') || 
+                             normalizedMessage.includes('medicine') || 
+                             normalizedMessage.includes('help') ||
+                             normalizedMessage.includes('cure') ||
+                             normalizedMessage.includes('what should i do') ||
+                             normalizedMessage.includes('how to treat');
+    
+    // Determine if we should provide treatment recommendations
+    const shouldRecommendTreatment = askingForTreatment || 
+                                   (newDetectedSymptoms.length > 0 && conversationStage === 'assessing' && messages.length > 4);
+    
+    if (shouldRecommendTreatment && newDetectedSymptoms.length > 0) {
+      // Move to recommending stage
+      setConversationStage('recommending');
+      
+      // Provide treatment recommendations based on detected symptoms
+      response = "Based on your symptoms, here are some recommendations:\n\n";
+      
+      for (const symptom of newDetectedSymptoms) {
+        const matchedSymptom = Object.keys(symptomDatabase).find(s => 
+          symptom.includes(s) || s.includes(symptom)
+        );
+        
+        if (matchedSymptom && symptomDatabase[matchedSymptom as keyof typeof symptomDatabase]) {
+          const symptomInfo = symptomDatabase[matchedSymptom as keyof typeof symptomDatabase];
+          response += `For ${matchedSymptom}:\n`;
+          symptomInfo.treatments.slice(0, 3).forEach(treatment => {
+            response += `• ${treatment}\n`;
+          });
+          response += '\n';
+        }
+      }
+      
+      response += "Remember, this is not a replacement for professional medical advice. If your symptoms are severe or persistent, please consult with a healthcare provider.";
+    } else if (newDetectedSymptoms.length > 0) {
       // Update conversation context with detected symptoms
-      setConversationContext(prev => [...prev, ...detectedSymptoms]);
+      setConversationContext(prev => [...prev, ...newDetectedSymptoms]);
+      
+      // Set conversation stage to assessing
+      setConversationStage('assessing');
       
       // Get the first detected symptom for a targeted response
-      const primarySymptom = detectedSymptoms[0];
+      const primarySymptom = newDetectedSymptoms[0];
       const matchedSymptom = Object.keys(symptomDatabase).find(s => 
         primarySymptom.includes(s) || s.includes(primarySymptom)
       );
@@ -143,8 +250,13 @@ const ChatInterface = () => {
         response = symptomDatabase[matchedSymptom as keyof typeof symptomDatabase].followUp;
         
         // If we've detected multiple symptoms, acknowledge them
-        if (detectedSymptoms.length > 1) {
-          response += `\n\nI also notice you mentioned ${detectedSymptoms.slice(1).join(", ")}. Let's discuss each of these symptoms.`;
+        if (newDetectedSymptoms.length > 1) {
+          response += `\n\nI also notice you mentioned ${newDetectedSymptoms.slice(1).join(", ")}. Let's discuss each of these symptoms.`;
+        }
+        
+        // Add a prompt for treatment if we have enough symptoms
+        if (newDetectedSymptoms.length >= 2) {
+          response += "\n\nWould you like me to suggest some treatment options based on your symptoms?";
         }
       }
     } else if (imageData) {
@@ -158,6 +270,11 @@ const ChatInterface = () => {
       // Use conversation context to provide a more contextual response
       if (conversationContext.length > 0) {
         response = `Based on our conversation about ${conversationContext.join(", ")}, could you provide more details about your symptoms? This will help me give you a more accurate assessment.`;
+        
+        // If we have enough context, prompt for treatment options
+        if (conversationStage === 'assessing' && conversationContext.length >= 2) {
+          response += "\n\nWould you like me to suggest some treatment options based on what you've shared so far?";
+        }
       }
     }
     
